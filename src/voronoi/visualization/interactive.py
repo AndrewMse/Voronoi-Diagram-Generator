@@ -9,6 +9,7 @@ from ..data_structures.point import Point
 from ..algorithms.fortune import FortunesAlgorithm
 from ..data_structures.voronoi_diagram import VoronoiDiagram
 from .colors import ColorPalette, ColorScheme
+from ..config import get_config
 
 
 class InteractiveVoronoiApp:
@@ -16,13 +17,14 @@ class InteractiveVoronoiApp:
     Interactive Voronoi diagram application with real-time updates.
     """
 
-    def __init__(self, width: int = 1200, height: int = 800):
+    def __init__(self, width: int = None, height: int = None):
         pygame.init()
         pygame.font.init()
 
-        self.width = width
-        self.height = height
-        self.screen = pygame.display.set_mode((width, height))
+        config = get_config()
+        self.width = width or config.get('interactive.window_width', 1000)
+        self.height = height or config.get('interactive.window_height', 700)
+        self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption("Advanced Voronoi Diagram Generator")
 
         # Colors and styling
@@ -45,8 +47,8 @@ class InteractiveVoronoiApp:
 
         # Visualization settings
         self.show_sites = True
-        self.show_vertices = True
-        self.show_edges = True
+        self.show_vertices = False
+        self.show_edges = False
         self.show_faces = True
         self.show_grid = False
         self.show_stats = True
@@ -73,8 +75,10 @@ class InteractiveVoronoiApp:
         """Main application loop."""
         running = True
 
-        # Generate some initial random sites
-        self._generate_random_sites(10)
+        # Generate some initial random sites across the full window
+        config = get_config()
+        initial_count = config.get('sites.default_count', 25)
+        self._generate_random_sites(initial_count)
         self._update_diagram()
 
         while running:
@@ -458,7 +462,9 @@ class InteractiveVoronoiApp:
             return
 
         try:
-            algorithm = FortunesAlgorithm()
+            # Use window size for bounding box
+            bounding_box = (0, self.ui_height, self.width, self.height)
+            algorithm = FortunesAlgorithm(bounding_box)
             self.diagram = algorithm.generate_voronoi_diagram(self.sites)
         except Exception as e:
             print(f"Error generating diagram: {e}")

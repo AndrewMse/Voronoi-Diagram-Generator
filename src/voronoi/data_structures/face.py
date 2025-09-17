@@ -77,6 +77,11 @@ class Face:
 
     def get_boundary_points(self) -> List[Point]:
         """Get all boundary points of this face."""
+        # Use computed bounded polygon if available
+        if hasattr(self, '_bounded_polygon') and self._bounded_polygon:
+            return self._bounded_polygon
+
+        # Fallback to edge-based boundary computation
         return [vertex.point for vertex in self.get_boundary_vertices()]
 
     def area(self) -> float:

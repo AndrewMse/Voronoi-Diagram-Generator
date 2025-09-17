@@ -21,7 +21,6 @@ class HalfEdge:
         self.face: Optional['Face'] = None  # Forward reference
 
         # Geometric properties
-        self.is_infinite: bool = False
         self.direction: Optional[Point] = None
 
         # For Fortune's algorithm
@@ -46,6 +45,11 @@ class HalfEdge:
     def is_complete(self) -> bool:
         """Check if half-edge has both origin and destination vertices."""
         return self.origin is not None and self.destination is not None
+
+    @property
+    def is_infinite(self) -> bool:
+        """Check if half-edge is infinite (missing an endpoint)."""
+        return self.origin is None or self.destination is None
 
     @property
     def vector(self) -> Optional[Point]:

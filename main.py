@@ -25,6 +25,7 @@ from voronoi import FortunesAlgorithm, VoronoiRenderer, Point
 from voronoi.utils import SiteGenerator, PerformanceProfiler, DiagramExporter, VoronoiAnalyzer
 from voronoi.visualization import ColorScheme
 from voronoi.visualization.interactive import InteractiveVoronoiApp
+from voronoi.config import get_config
 
 
 def main():
@@ -46,9 +47,11 @@ def main():
         'random', 'grid', 'jittered_grid', 'circle', 'spiral',
         'gaussian', 'poisson', 'fractal', 'relaxed', 'blue_noise'
     ], default='random', help='Site distribution pattern (default: random)')
+    config = get_config()
+    default_bounds = config.get('algorithm.default_bounding_box', [0, 0, 800, 600])
     parser.add_argument('--bounds', nargs=4, type=float,
-                       default=[0, 0, 800, 600], metavar=('MIN_X', 'MIN_Y', 'MAX_X', 'MAX_Y'),
-                       help='Bounding box for site generation (default: 0 0 800 600)')
+                       default=default_bounds, metavar=('MIN_X', 'MIN_Y', 'MAX_X', 'MAX_Y'),
+                       help=f'Bounding box for site generation (default: {" ".join(map(str, default_bounds))})')
     parser.add_argument('--seed', type=int, help='Random seed for reproducible results')
 
     # Visualization options

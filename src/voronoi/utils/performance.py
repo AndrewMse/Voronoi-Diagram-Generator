@@ -148,7 +148,7 @@ class PerformanceProfiler:
         Returns:
             Benchmark results with performance analysis
         """
-        from ..utils.generators import SiteGenerator
+        from ..utils.generators import SiteGenerator, DistributionType
 
         results = {
             'site_counts': site_counts,
@@ -167,7 +167,7 @@ class PerformanceProfiler:
             for iteration in range(iterations):
                 # Generate sites
                 sites = generator.generate(
-                    generator.DistributionType.UNIFORM_RANDOM,
+                    DistributionType.UNIFORM_RANDOM,
                     site_count,
                     bounds
                 )

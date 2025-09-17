@@ -1,0 +1,67 @@
+{
+  "visualization": {
+    "show_sites": true,
+    "show_vertices": false,
+    "show_edges": false,
+    "show_faces": true,
+    "show_grid": false,
+    "show_bounding_box": false,
+    "show_stats": true
+  },
+  "rendering": {
+    "figure_size": [24, 16],
+    "dpi": 100,
+    "face_alpha": 1.0,
+    "edge_alpha": 0.8,
+    "site_alpha": 0.3,
+    "vertex_alpha": 0.9,
+    "anti_aliasing": true,
+    "high_quality": true
+  },
+  "sites": {
+    "site_size": 50,
+    "site_marker": "o",
+    "default_count": 25,
+    "default_pattern": "random"
+  },
+  "vertices": {
+    "vertex_size": 20,
+    "vertex_marker": "s"
+  },
+  "edges": {
+    "edge_width": 1.5,
+    "edge_color": "black"
+  },
+  "colors": {
+    "default_scheme": "ocean",
+    "site_color": "red",
+    "vertex_color": "blue",
+    "background_color": null,
+    "gradient_faces": false
+  },
+  "interactive": {
+    "window_width": 2000,
+    "window_height": 1300,
+    "target_fps": 60,
+    "ui_height": 60,
+    "animation_speed": 1.0,
+    "background_color": [20, 20, 30],
+    "text_color": [200, 200, 200],
+    "grid_color": [50, 50, 60]
+  },
+  "algorithm": {
+    "default_bounding_box": [0, 0, 2300, 1500],
+    "enable_debug_mode": false,
+    "precision_epsilon": 1e-10
+  },
+  "export": {
+    "default_format": "png",
+    "svg_precision": 3,
+    "include_metadata": true
+  },
+  "performance": {
+    "enable_profiling": true,
+    "benchmark_site_counts": [10, 25, 50, 100, 200, 500, 1000, 2000],
+    "max_sites_interactive": 10000
+  }
+}

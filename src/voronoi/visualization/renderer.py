@@ -13,6 +13,7 @@ from ..data_structures.vertex import Vertex
 from ..data_structures.edge import Edge
 from ..data_structures.face import Face
 from .colors import ColorPalette, ColorScheme
+from ..config import get_config
 
 
 class VoronoiRenderer:
@@ -21,37 +22,45 @@ class VoronoiRenderer:
     """
 
     def __init__(self, color_scheme: ColorScheme = ColorScheme.DEFAULT):
+        config = get_config()
+
         self.color_palette = ColorPalette(color_scheme)
-        self.figure_size = (12, 10)
-        self.dpi = 100
+
+        # Load settings from config
+        self.figure_size = tuple(config.get('rendering.figure_size', [12, 10]))
+        self.dpi = config.get('rendering.dpi', 100)
 
         # Rendering options
-        self.show_sites = True
-        self.show_vertices = True
-        self.show_edges = True
-        self.show_faces = True
-        self.show_grid = False
-        self.show_bounding_box = True
+        self.show_sites = config.get('visualization.show_sites', True)
+        self.show_vertices = config.get('visualization.show_vertices', False)
+        self.show_edges = config.get('visualization.show_edges', False)
+        self.show_faces = config.get('visualization.show_faces', True)
+        self.show_grid = config.get('visualization.show_grid', False)
+        self.show_bounding_box = config.get('visualization.show_bounding_box', False)
+
+        # Debug output
+        print(f"DEBUG: Loaded show_vertices = {self.show_vertices} (type: {type(self.show_vertices)})")
+        print(f"DEBUG: Loaded show_edges = {self.show_edges} (type: {type(self.show_edges)})")
 
         # Style options
-        self.site_size = 50
-        self.vertex_size = 20
-        self.edge_width = 1.5
-        self.site_marker = 'o'
-        self.vertex_marker = 's'
+        self.site_size = config.get('sites.site_size', 50)
+        self.vertex_size = config.get('vertices.vertex_size', 20)
+        self.edge_width = config.get('edges.edge_width', 1.5)
+        self.site_marker = config.get('sites.site_marker', 'o')
+        self.vertex_marker = config.get('vertices.vertex_marker', 's')
 
         # Color options
-        self.site_color = 'red'
-        self.vertex_color = 'blue'
-        self.edge_color = 'black'
-        self.background_color = None  # Will use scheme default
-        self.face_alpha = 0.6
-        self.edge_alpha = 0.8
+        self.site_color = config.get('colors.site_color', 'red')
+        self.vertex_color = config.get('colors.vertex_color', 'blue')
+        self.edge_color = config.get('edges.edge_color', 'black')
+        self.background_color = config.get('colors.background_color', None)
+        self.face_alpha = config.get('rendering.face_alpha', 1.0)
+        self.edge_alpha = config.get('rendering.edge_alpha', 0.8)
 
         # Advanced options
-        self.anti_aliasing = True
-        self.high_quality = True
-        self.gradient_faces = False
+        self.anti_aliasing = config.get('rendering.anti_aliasing', True)
+        self.high_quality = config.get('rendering.high_quality', True)
+        self.gradient_faces = config.get('colors.gradient_faces', False)
 
     def render(self, diagram: VoronoiDiagram, title: str = "Voronoi Diagram",
                save_path: Optional[str] = None, show: bool = True) -> plt.Figure:
@@ -75,15 +84,23 @@ class VoronoiRenderer:
 
         # Render components in order
         if self.show_faces:
+            print(f"Rendering faces: {len(diagram.faces)} faces")
             self._render_faces(ax, diagram)
 
         if self.show_edges:
+            print(f"Rendering edges: {len(diagram.edges)} edges")
             self._render_edges(ax, diagram)
+        else:
+            print("Edges disabled - not rendering")
 
         if self.show_vertices:
+            print(f"Rendering vertices: {len(diagram.vertices)} vertices")
             self._render_vertices(ax, diagram)
+        else:
+            print("Vertices disabled - not rendering")
 
         if self.show_sites:
+            print(f"Rendering sites: {len(diagram.sites)} sites")
             self._render_sites(ax, diagram)
 
         if self.show_grid:
@@ -102,7 +119,8 @@ class VoronoiRenderer:
 
         # Show if requested
         if show:
-            plt.show()
+            plt.show(block=False)  # Don't block so we can see debug output
+            plt.pause(3)  # Show for 3 seconds
 
         return fig
 
@@ -179,7 +197,7 @@ class VoronoiRenderer:
         # Add all patches at once for better performance
         if patches_list:
             patch_collection = PatchCollection(patches_list, facecolors=colors,
-                                             alpha=self.face_alpha, edgecolors='none')
+                                             alpha=1.0, edgecolors='none')
             ax.add_collection(patch_collection)
 
     def _render_edges(self, ax: plt.Axes, diagram: VoronoiDiagram) -> None:
@@ -239,7 +257,7 @@ class VoronoiRenderer:
         else:
             color = [c/255.0 for c in comp_colors.get('highlight', (255, 200, 100))]
 
-        ax.scatter(x_coords, y_coords, s=self.vertex_size, c=color,
+        ax.scatter(x_coords, y_coords, s=self.vertex_size, color=color,
                   marker=self.vertex_marker, edgecolors='white', linewidths=0.5,
                   alpha=0.9, zorder=5)
 
@@ -259,9 +277,11 @@ class VoronoiRenderer:
             # Use a contrasting color for sites
             color = [c/255.0 for c in (255, 100, 100)]
 
-        ax.scatter(x_coords, y_coords, s=self.site_size, c=color,
+        config = get_config()
+        site_alpha = config.get('rendering.site_alpha', 0.3)
+        ax.scatter(x_coords, y_coords, s=self.site_size, color=color,
                   marker=self.site_marker, edgecolors='white', linewidths=1,
-                  alpha=0.9, zorder=10)
+                  alpha=site_alpha, zorder=10)
 
     def _render_grid(self, ax: plt.Axes, diagram: VoronoiDiagram) -> None:
         """Render a subtle grid."""

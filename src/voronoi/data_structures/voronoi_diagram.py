@@ -111,11 +111,126 @@ class VoronoiDiagram:
         if self.is_finalized:
             return
 
+        self._add_bounding_box_vertices()
         self._clip_infinite_edges()
+        self._create_boundary_edges()
         self._compute_face_boundaries()
         self._validate_topology()
 
         self.is_finalized = True
+
+    def _add_bounding_box_vertices(self) -> None:
+        """Add vertices at the corners of the bounding box."""
+        corners = [
+            Point(self.min_x, self.min_y),  # Bottom-left
+            Point(self.max_x, self.min_y),  # Bottom-right
+            Point(self.max_x, self.max_y),  # Top-right
+            Point(self.min_x, self.max_y),  # Top-left
+        ]
+
+        for corner in corners:
+            self.add_vertex(corner)
+
+    def _create_boundary_edges(self) -> None:
+        """Create proper bounded polygons for each face by computing intersections with bounding box."""
+        for face in self.faces:
+            if face.is_unbounded or not face.site:
+                continue
+
+            # Compute the actual bounded polygon for this face
+            bounded_polygon = self._compute_bounded_face_polygon(face)
+            if bounded_polygon and len(bounded_polygon) >= 3:
+                # Store the bounded polygon points directly in the face
+                face._bounded_polygon = bounded_polygon
+
+    def _compute_bounded_face_polygon(self, face: Face) -> List[Point]:
+        """Compute the bounded polygon for a face by intersecting all bisectors with the bounding box."""
+        site = face.site
+        if not site:
+            return []
+
+        # Start with the bounding box as the initial polygon
+        polygon = [
+            Point(self.min_x, self.min_y),  # Bottom-left
+            Point(self.max_x, self.min_y),  # Bottom-right
+            Point(self.max_x, self.max_y),  # Top-right
+            Point(self.min_x, self.max_y),  # Top-left
+        ]
+
+        # Clip the polygon against each bisector (half-plane)
+        for other_site in self.sites:
+            if other_site == site:
+                continue
+
+            # Clip polygon against the half-plane defined by the bisector
+            polygon = self._clip_polygon_by_bisector(polygon, site, other_site)
+
+            if not polygon:
+                break
+
+        return polygon
+
+    def _clip_polygon_by_bisector(self, polygon: List[Point], site: Point, other_site: Point) -> List[Point]:
+        """Clip a polygon by the bisector half-plane (keeping points closer to 'site')."""
+        if not polygon:
+            return []
+
+        # Use Sutherland-Hodgman clipping algorithm
+        clipped = []
+
+        for i in range(len(polygon)):
+            current = polygon[i]
+            next_point = polygon[(i + 1) % len(polygon)]
+
+            current_inside = self._point_closer_to_site(current, site, other_site)
+            next_inside = self._point_closer_to_site(next_point, site, other_site)
+
+            if current_inside and next_inside:
+                # Both inside: add next point
+                clipped.append(next_point)
+            elif current_inside and not next_inside:
+                # Leaving: add intersection
+                intersection = self._line_bisector_intersection_point(current, next_point, site, other_site)
+                if intersection:
+                    clipped.append(intersection)
+            elif not current_inside and next_inside:
+                # Entering: add intersection and next point
+                intersection = self._line_bisector_intersection_point(current, next_point, site, other_site)
+                if intersection:
+                    clipped.append(intersection)
+                clipped.append(next_point)
+            # else: both outside, add nothing
+
+        return clipped
+
+    def _point_closer_to_site(self, point: Point, site: Point, other_site: Point) -> bool:
+        """Check if point is closer to 'site' than to 'other_site'."""
+        dist_to_site = point.distance_to(site)
+        dist_to_other = point.distance_to(other_site)
+        return dist_to_site <= dist_to_other
+
+    def _line_bisector_intersection_point(self, p1: Point, p2: Point, site: Point, other_site: Point) -> Optional[Point]:
+        """Find intersection of line segment p1-p2 with the bisector of site and other_site."""
+        # Bisector parameters
+        bisector_mid = (site + other_site) / 2
+        site_vec = other_site - site
+        bisector_dir = site_vec.perpendicular().normalize()
+
+        # Line segment direction
+        seg_dir = p2 - p1
+
+        # Solve for intersection
+        denominator = bisector_dir.cross(seg_dir)
+        if abs(denominator) < 1e-10:
+            return None  # Parallel
+
+        t = (p1 - bisector_mid).cross(seg_dir) / denominator
+        s = (p1 - bisector_mid).cross(bisector_dir) / denominator
+
+        if 0 <= s <= 1:  # Intersection within segment
+            return bisector_mid + bisector_dir * t
+
+        return None
 
     def _clip_infinite_edges(self) -> None:
         """Clip infinite edges to the bounding box."""
@@ -139,20 +254,41 @@ class VoronoiDiagram:
         ]
 
         for x1, y1, x2, y2 in boundaries:
-            intersection = self._line_segment_intersection(
+            intersection = self._line_bisector_intersection(
                 midpoint, direction, Point(x1, y1), Point(x2, y2)
             )
-            if intersection:
+            if intersection and self._point_in_bounds(intersection):
                 intersections.append(intersection)
 
-        # Create vertices at intersection points
-        if len(intersections) >= 2:
+        # If we have existing vertex, keep it and add one intersection
+        existing_vertex = None
+        if edge.half_edge1.origin:
+            existing_vertex = edge.half_edge1.origin
+        elif edge.half_edge1.destination:
+            existing_vertex = edge.half_edge1.destination
+
+        if existing_vertex and intersections:
+            # Choose the intersection farthest from existing vertex
+            best_intersection = max(intersections,
+                                  key=lambda p: existing_vertex.point.distance_to(p))
+            new_vertex = self.add_vertex(best_intersection)
+
+            # Set the missing endpoint
+            if edge.half_edge1.origin is None:
+                edge.half_edge1.origin = new_vertex
+                edge.half_edge2.destination = new_vertex
+            elif edge.half_edge1.destination is None:
+                edge.half_edge1.destination = new_vertex
+                edge.half_edge2.origin = new_vertex
+
+        elif len(intersections) >= 2:
+            # No existing vertices, use two intersections
             v1 = self.add_vertex(intersections[0])
             v2 = self.add_vertex(intersections[1])
-
-            # Set edge endpoints
-            edge.set_vertex(v1, is_start=True)
-            edge.set_vertex(v2, is_start=False)
+            edge.half_edge1.origin = v1
+            edge.half_edge1.destination = v2
+            edge.half_edge2.origin = v2
+            edge.half_edge2.destination = v1
 
     def _line_segment_intersection(self, point: Point, direction: Point,
                                    seg_start: Point, seg_end: Point) -> Optional[Point]:
@@ -175,6 +311,32 @@ class VoronoiDiagram:
 
         return None
 
+    def _line_bisector_intersection(self, point: Point, direction: Point,
+                                   seg_start: Point, seg_end: Point) -> Optional[Point]:
+        """Find intersection between a line (bisector) and a line segment."""
+        # Line equation: point + t * direction
+        # Segment equation: seg_start + s * (seg_end - seg_start)
+
+        seg_dir = seg_end - seg_start
+        denominator = direction.cross(seg_dir)
+
+        if abs(denominator) < 1e-10:
+            return None  # Parallel lines
+
+        t = (seg_start - point).cross(seg_dir) / denominator
+        s = (seg_start - point).cross(direction) / denominator
+
+        # Check if intersection is within the segment
+        if 0 <= s <= 1:
+            return point + direction * t
+
+        return None
+
+    def _point_in_bounds(self, point: Point) -> bool:
+        """Check if a point is within the bounding box."""
+        return (self.min_x <= point.x <= self.max_x and
+                self.min_y <= point.y <= self.max_y)
+
     def _compute_face_boundaries(self) -> None:
         """Compute the boundary cycles for each face."""
         for face in self.faces:
@@ -184,10 +346,12 @@ class VoronoiDiagram:
             # Find all half-edges that belong to this face
             face_edges = []
             for edge in self.edges:
-                if edge.half_edge1.left_site == face.site:
-                    face_edges.append(edge.half_edge1)
-                if edge.half_edge2.left_site == face.site:
-                    face_edges.append(edge.half_edge2)
+                # Only include complete edges
+                if edge.is_complete:
+                    if edge.half_edge1.left_site == face.site:
+                        face_edges.append(edge.half_edge1)
+                    if edge.half_edge2.left_site == face.site:
+                        face_edges.append(edge.half_edge2)
 
             if face_edges:
                 # Order the edges to form a cycle
