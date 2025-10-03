@@ -110,8 +110,15 @@ The implementation achieves optimal theoretical complexity:
 | 100,000| 3.89s        | 287 MB       |
 
 ## Visualization Gallery
+### Benchmarks and Mre
+| 100 Sites | 5000 Sites | Figure 3 |
+|-----------|------------|----------|
+| ![100 Sites](assets/benchmark100Sites.png) | ![5000 Sites](assets/benchmark5000Sites.png) | ![Figure 3](assets/Figure_3.png) |
 
 ### Color Schemes
+| Forest | Sunset | Ocean | Monochrome |
+|-------|--------|-------------|-------------|
+| ![Forest](assets/forest.png) | ![Sunset](assets/sunset.png) | ![Ocean](assets/ocean.png) | ![Monochrome](assets/monochrome.png) |
 
 ## Architecture
 
