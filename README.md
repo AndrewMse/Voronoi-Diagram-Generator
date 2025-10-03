@@ -42,7 +42,7 @@ A comprehensive, high-performance implementation of Fortune's sweep line algorit
 
 ```bash
 # Clone the repository
-git clone https://github.com/username/advanced-voronoi-generator.git
+git clone https://github.com/AndrewMse/advanced-voronoi-generator.git
 cd advanced-voronoi-generator
 
 # Install dependencies
