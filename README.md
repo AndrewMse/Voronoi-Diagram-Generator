@@ -252,25 +252,6 @@ python -m pytest tests/ --cov=src --cov-report=html
 - **Robustness Tests**: Edge cases and error handling
 - **Visual Tests**: Rendering and export validation
 
-## 📚 Documentation
-
-### API Reference
-
-Complete API documentation with examples:
-
-```python
-# Core classes
-FortunesAlgorithm(bounding_box=None)
-VoronoiDiagram(bounding_box=None)
-VoronoiRenderer(color_scheme=ColorScheme.DEFAULT)
-
-# Utility classes
-SiteGenerator(seed=None)
-VoronoiAnalyzer()
-PerformanceProfiler()
-DiagramExporter()
-```
-
 ### Tutorials and Examples
 
 - [Basic Usage](examples/basic_usage.py) - Getting started guide
